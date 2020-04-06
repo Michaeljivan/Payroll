@@ -1,1 +1,2 @@
-# CSharp Console App solution, example: Payroll app
+# CSharp Console App solution
+example: Payroll app
