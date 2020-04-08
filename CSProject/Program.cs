@@ -8,7 +8,68 @@ namespace CSProject
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            List<Staff> staffList = new List<Staff>();
+            FileReader fr = new FileReader();
+            int month = 0;
+            int year = 0;
+
+            while(year == 0)
+            {
+                Console.Write("\nPlease enter the year: ");
+                
+                try
+                {
+                    year = Convert.ToInt32(Console.ReadLine());
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e.Message + " Please try again.");
+                }
+            }
+
+            while(month == 0)
+            {
+                Console.Write("\nPlease enter the month: ");
+                
+                try
+                {
+                    month = Convert.ToInt32(Console.ReadLine());
+                    
+                    if(month < 1 || month > 12)
+                    {
+                        Console.WriteLine("Month must be from 1 to 12. Please try again.");
+                        month = 0;
+                    }
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e.Message + " Please try again.");
+                }
+            }
+
+            staffList = fr.ReadFile();
+            //continue here page 150.
+            for(int i = 0; i < staffList.Count; i++)
+            {
+                try
+                {
+                    Console.WriteLine("\nEnter hours worked for {0}", staffList[i].NameOfStaff);
+                    staffList[i].HoursWorked = Convert.ToInt32(Console.ReadLine());
+                    staffList[i].CalculatePay();
+                }
+                catch(Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    i--;
+                }
+            }
+
+            PaySlip payslip = new PaySlip(month, year);
+            payslip.GeneratePaySlip(staffList);
+            payslip.GenerateSummary(staffList);
+
+            Console.Read();
+
         }
     }
 
@@ -123,10 +184,103 @@ namespace CSProject
 
             if (File.Exists(path))
             { 
-            
+                using (StreamReader sr = new StreamReader(path))
+                    {
+                        while(!sr.EndOfStream)
+                        {
+                            result = sr.ReadLine().Split(separator,StringSplitOptions.RemoveEmptyEntries);
+                            
+                            if(result[1] == "Manager")
+                                staffList.Add(new Manager(result[0]));
+                            else if(result[1] == "Admin")
+                                staffList.Add(new Admin(result[0]));
+                        }
+                        sr.Close();
+                    }
+            }
+            else
+            {
+                Console.WriteLine("Error: File does not exist.");
             }
             return staffList;
         }
+    }
+
+    class PaySlip
+    {
+        private int month;
+        private int year;
+
+        enum MonthsOfYear {JAN = 1, FEB = 2, MAR, APR, MAY, JUN, JUL, AUG, SEP, OCT, NOV, DEC };
+
+        public PaySlip(int payMonth, int payYear)
+        {
+            month = payMonth;
+            year = payYear;
+        }
+
+        public void GeneratePaySlip(List<Staff> staffList)
+        {
+            string path;
+
+            foreach(Staff s in staffList)
+            {
+                path = s.NameOfStaff + ".txt";
+
+                using(StreamWriter sw = new StreamWriter(path))
+                {
+                    sw.WriteLine("PAYSLIP FOR {0} {1}", month, year);
+                    sw.WriteLine("=================================");
+                    sw.WriteLine("Name of Staff: {0}", s.NameOfStaff);
+                    sw.WriteLine("Hours Worked: {0}", s.HoursWorked);
+                    sw.WriteLine("");
+                    sw.WriteLine("Basic Pay: {0:C}", s.BasicPay);
+
+                    if(s.GetType() == typeof(Manager))
+                    {
+                        sw.WriteLine("Allowance: {0:C}", ((Manager)s).Allowance);
+                    }
+                    else if(s.GetType() == typeof(Admin))
+                    {
+                        sw.WriteLine("Overtime: {0:C}", ((Admin)s).Overtime);
+                    }
+                    
+                    sw.WriteLine("");
+                    sw.WriteLine("=================================");
+                    sw.WriteLine("TOTAL PAY: {0:C}", s.TotalPay);
+                    sw.WriteLine("=================================");
+                }
+
+            }
+        }
+
+        public void GenerateSummary(List<Staff> staffList)
+        {
+            var result = from s in staffList
+                         where s.HoursWorked < 10
+                         orderby s.NameOfStaff ascending
+                         select new {s.NameOfStaff, s.HoursWorked};
+
+            string path = "summary.txt";
+
+            using(StreamWriter sw = new StreamWriter(path))
+            {
+                sw.WriteLine("Staff with less than 10  working hours");
+                sw.WriteLine("");
+
+                foreach( var s in result)
+                {
+                    sw.WriteLine("Name of Staff: {0}, Hours Worked: {1}");
+                }
+                sw.Close();
+            }
+        }
+
+        public override string ToString()
+        {
+            return "month = " + month + "year = "+ year;
+        }
+
     }
 }
 
